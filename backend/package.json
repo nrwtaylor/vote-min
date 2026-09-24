@@ -1,0 +1,2 @@
+{"name":"vote-min-backend","type":"module","scripts":{"start":"node src/index.js","dev":"node --watch src/index.js"},
+"dependencies":{"express":"^5.0.0","mongodb":"^6.10.0"}}

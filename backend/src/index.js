@@ -3,7 +3,16 @@
 // update: no transactions, no replica set needed.
 import express from 'express'
 import { MongoClient } from 'mongodb'
+import { execSync } from 'node:child_process'
 import { randomBytes, randomInt, createHash, createHmac, scryptSync, timingSafeEqual } from 'node:crypto'
+
+// Read once at startup, not per request. If this isn't a git checkout (e.g. deployed from a zip), all
+// three stay null and /v1/version says so plainly rather than pretending to know.
+const git = cmd => { try { return execSync(cmd, { cwd: import.meta.dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || null } catch { return null } }
+const REPO = 'https://github.com/nrwtaylor/vote-min'
+const COMMIT = git('git rev-parse HEAD')
+const BRANCH = git('git rev-parse --abbrev-ref HEAD')
+const COMMIT_AT = git('git log -1 --format=%cI')
 
 const polls = (await MongoClient.connect(process.env.MONGO_URL || 'mongodb://127.0.0.1:27017'))
   .db(process.env.MONGO_DB || 'vote-min').collection('polls')
@@ -63,6 +72,11 @@ app.use((q, s, n) => { // open CORS is safe: no cookies, manage calls carry a Be
   q.body ??= {}; q.method === 'OPTIONS' ? s.sendStatus(204) : n()
 })
 app.use('/v1', r) // no /api prefix here: that's nginx's job at the public boundary (see API.md)
+
+// What this proves: the commit this process was actually started from, so it can be checked against the
+// public repo. What it doesn't prove: that nothing changed in the running process since then, or that this
+// exact commit was pushed to that repo — both are worth checking yourself, this just gives you the SHA to check.
+r.get('/version', (q, s) => s.json({ commit: COMMIT, branch: BRANCH, commitAt: COMMIT_AT, repo: REPO }))
 
 // The URL's :mid can be the long manage id, or the same short code used for the voter link.
 const findManaged = mid => polls.findOne({ $or: [{ _id: mid }, { voterId: String(mid).toUpperCase() }] })

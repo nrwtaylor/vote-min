@@ -171,6 +171,17 @@ The test for any proposed feature is whether it can be explained without also ex
 "nobody, including the organiser, can find out what a specific person chose." If it can't, it doesn't go in
 — not because it's a bad idea in general, but because it's a different tool.
 
+## Verifying a deployment
+Any running instance exposes what commit it was actually started from, so a voter or organiser doesn't have
+to just take a deployer's word for what's running: `GET /v1/version` on the backend, and the frontend bakes
+its own build-time commit into `NEXT_PUBLIC_GIT_COMMIT`. Both are shown together at `/audit` in the app,
+each linking straight to that exact commit on `https://github.com/nrwtaylor/vote-min`, rather than asking
+anyone to trust a summary. This is deliberately modest about what it proves: it identifies the commit that
+was checked out, not that the running process hasn't been altered since, and not that the commit was
+definitely pushed to that repository — both are exactly as checkable by a visitor as by anyone else, which is
+the point. If a deployment wasn't made from a git checkout (e.g. from a zip export), both fields report
+`null` and the page says so rather than guessing.
+
 ## Serving the frontend under a subpath (e.g. /vote)
 Set `BASE_PATH=/vote` in `frontend/.env.local` (no trailing slash) and rebuild/restart. `<Link>` and
 `router.push` pick it up automatically; the app's own `fetch`/`EventSource` calls and the voter-link

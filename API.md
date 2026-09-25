@@ -4,6 +4,11 @@ the public base is `https://stackr.ca/api/cyanibex/v1`. JSON in and out. Errors 
 CORS is open; there are no cookies. States run one way: draft, published, open, closed. Question and answers
 lock when a vote opens.
 
+## Meta
+| Call | Result |
+|---|---|
+| `GET /version` | `{commit, branch, commitAt, repo}`. The git commit this backend process was started from — `null` fields if it wasn't deployed from a git checkout. Not a proof the process hasn't since been altered; see `/audit` in the frontend |
+
 ## Organiser
 `:mid` accepts either the `manageId` or the same short `voterId` code used for the voter link. A password
 is required before anything else works (see below), so this is safe: knowing a poll's public code only gets

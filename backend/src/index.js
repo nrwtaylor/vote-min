@@ -50,9 +50,11 @@ const flags = p => {
   return f
 }
 const view = p => ({ state: p.state, question: p.question, idLabel: p.idLabel, voterId: p.voterId, hasPassword: !!p.pw,
+  autoAccept: !!p.autoAccept,
   flags: flags(p), expected: p.expected || 0, expiresAt: TTL && p.createdAt ? new Date(+p.createdAt + TTL * 864e5) : null,
   options: opts(p), feed: feed.get(p._id) || [], results: p.state === 'closed' ? res(p) : null,
-  roll: p.ballots.map(b => ({ identifier: b.k, voted: b.done, requests: b.n, afterVote: b.a })).sort((a, b) => a.identifier.localeCompare(b.identifier)) })
+  // status is missing on ballots from before this feature existed; they were all issued immediately, so 'accepted' is the right default.
+  roll: p.ballots.map(b => ({ identifier: b.k, voted: b.done, requests: b.n, afterVote: b.a, status: b.status || 'accepted' })).sort((a, b) => a.identifier.localeCompare(b.identifier)) })
 
 const app = express(), r = express.Router()
 app.disable('x-powered-by'); app.use(express.json({ limit: '4kb' }))
@@ -76,7 +78,7 @@ const needPw = (q, s, n) => q.poll.pw ? n() : s.status(403).json({ error: 'Set a
 
 r.post('/polls', async (q, s) => {
   for (let i = 0; i < 20; i++) { // retry if the short code is taken
-    const p = { _id: rid(9), voterId: vid(), createdAt: new Date(), question: '', idLabel: 'Name or unit number', state: 'draft', pw: null,
+    const p = { _id: rid(9), voterId: vid(), createdAt: new Date(), question: '', idLabel: 'Name or unit number', state: 'draft', pw: null, autoAccept: false,
       options: [], tally: [], ballots: [], alerts: [], wrongPw: 0, expected: 0 }
     try { await polls.insertOne(p); return s.json({ manageId: p._id, voterId: p.voterId }) } catch (e) { if (e.code !== 11000) throw e }
   }
@@ -112,9 +114,33 @@ r.post('/manage/:mid/state', mgr, needPw, async (q, s) => {
   if (NEXT[p.state] !== to) return s.status(409).json({ error: 'Not allowed' })
   if (to === 'published' && (!p.question || p.options.length < 2)) return s.status(400).json({ error: 'Add a question and at least two answers first' })
   const u = await polls.findOneAndUpdate({ _id: p._id, state: p.state },
-    { $set: { state: to, ...(to === 'closed' && { 'ballots.$[].h': null }) } }, { returnDocument: 'after' }) // closing kills unused ballots
+    { $set: { state: to, ...(to === 'closed' && { 'ballots.$[].h': null, 'ballots.$[].code': null }) } }, { returnDocument: 'after' }) // closing kills unused ballots
   if (!u) return s.status(409).json({ error: 'Not allowed' })
   ping(u.voterId); s.json(view(u))
+})
+
+// Stored on the poll itself, so this survives a page refresh or a second organiser opening the same vote.
+r.post('/manage/:mid/auto-accept', mgr, needPw, async (q, s) => {
+  const on = !!q.body.on
+  await polls.updateOne({ _id: q.poll._id }, { $set: { autoAccept: on } })
+  ping(q.poll.voterId); s.json({ autoAccept: on })
+})
+
+r.post('/manage/:mid/ballots/accept', mgr, needPw, async (q, s) => {
+  const k = norm(q.body.identifier)
+  const code = rid(24), h = sha(code) // generated now, not at request time, so nothing is votable until this moment
+  const u = await polls.updateOne({ _id: q.poll._id, ballots: { $elemMatch: { k, status: 'pending', done: false } } },
+    { $set: { 'ballots.$.status': 'accepted', 'ballots.$.code': code, 'ballots.$.h': h } })
+  if (!u.modifiedCount) return s.status(409).json({ error: 'No pending request for that identifier' })
+  ping(q.poll.voterId); s.json({ ok: true })
+})
+
+r.post('/manage/:mid/ballots/reject', mgr, needPw, async (q, s) => {
+  const k = norm(q.body.identifier)
+  const u = await polls.updateOne({ _id: q.poll._id, ballots: { $elemMatch: { k, status: 'pending', done: false } } },
+    { $set: { 'ballots.$.status': 'rejected', 'ballots.$.code': null, 'ballots.$.h': null } })
+  if (!u.modifiedCount) return s.status(409).json({ error: 'No pending request for that identifier' })
+  ping(q.poll.voterId); s.json({ ok: true })
 })
 
 r.post('/manage/:mid/password', mgr, async (q, s) => {
@@ -149,20 +175,46 @@ r.post('/v/:vid/ballot', async (q, s) => {
   const lk = p._id + ':' + k, now = Date.now()
   if (now - (last.get(lk) || 0) < 2000) return s.status(429).json({ error: 'One moment, then try again' })
   last.set(lk, now)
-  const code = rid(24), h = sha(code), F = { _id: p._id, state: 'open' }
+  const F = { _id: p._id, state: 'open' }
+  // Auto-accept: issue the ballot straight away, same as before. Manual (default): parks it pending
+  // until the organiser accepts or rejects it on the manage page — no code exists until then.
+  const auto = !!p.autoAccept
+  const code = auto ? rid(24) : null, h = auto ? sha(code) : null
+  const set = auto ? { status: 'accepted', code: null, h } : { status: 'pending', code: null, h: null }
+  const reply = auto ? { code, question: p.question, options: opts(p) } : { pending: true }
   for (let i = 0; i < 2; i++) {
-    const again = await polls.updateOne({ ...F, ballots: { $elemMatch: { k, done: false } } }, { $set: { 'ballots.$.h': h }, $inc: { 'ballots.$.n': 1 } }) // old ballot dies
-    const fresh = !again.modifiedCount && await polls.updateOne({ ...F, 'ballots.k': { $ne: k }, 'ballots.4999': { $exists: false } }, { $push: { ballots: { k, h, done: false, n: 1, a: 0 } } })
+    const again = await polls.updateOne({ ...F, ballots: { $elemMatch: { k, done: false } } }, { $set: set, $inc: { 'ballots.$.n': 1 } }) // old ballot dies, even if it was already accepted or rejected
+    const fresh = !again.modifiedCount && await polls.updateOne({ ...F, 'ballots.k': { $ne: k }, 'ballots.4999': { $exists: false } }, { $push: { ballots: { k, ...set, done: false, n: 1, a: 0 } } })
     if (fresh.modifiedCount) { // a new identifier: watch for bursts (timestamps kept in memory only)
       const t = (bursts.get(p._id) || []).filter(x => now - x < 6e4).concat(now); bursts.set(p._id, t)
       if (t.length === 20) await polls.updateOne({ _id: p._id }, { $push: { alerts: { $each: [{ at: new Date() }], $slice: -20 } } })
     }
-    if (again.modifiedCount || fresh.modifiedCount) { ping(p.voterId); return s.json({ code, question: p.question, options: opts(p) }) }
+    if (again.modifiedCount || fresh.modifiedCount) { ping(p.voterId); return s.json(reply) }
     if ((await polls.updateOne({ ...F, ballots: { $elemMatch: { k, done: true } } }, { $inc: { 'ballots.$.a': 1 } })).modifiedCount) {
       ping(p.voterId); return s.status(409).json({ error: 'That has already voted' })
     }
   }
   s.status(409).json({ error: 'This vote is full or busy. Try again.' })
+})
+
+// The voter's page calls this after a "pending" reply, each time it hears something changed, to see
+// whether the organiser has decided yet. Once accepted, the code is handed over here and immediately
+// cleared server-side — it only ever exists in the database for the gap between accept and this call.
+r.post('/v/:vid/ballot/claim', async (q, s) => {
+  const p = await byV(q.params.vid); if (!p) return s.sendStatus(404)
+  if (p.state !== 'open') return s.status(409).json({ error: 'Voting is closed' })
+  const k = norm(q.body.identifier); if (!k) return s.status(400).json({ error: 'Enter your ' + p.idLabel.toLowerCase() })
+  const claimed = await polls.findOneAndUpdate(
+    { _id: p._id, ballots: { $elemMatch: { k, status: 'accepted', done: false, code: { $ne: null } } } },
+    { $set: { 'ballots.$.code': null } }, { returnDocument: 'before', projection: { 'ballots.$': 1 } })
+  if (claimed) return s.json({ code: claimed.ballots[0].code, question: p.question, options: opts(p) })
+  const found = await polls.findOne({ _id: p._id, 'ballots.k': k }, { projection: { 'ballots.$': 1 } })
+  const b = found?.ballots?.[0]
+  if (!b) return s.status(404).json({ error: 'No request found. Ask for a ballot first.' })
+  if (b.done) return s.status(409).json({ error: 'That has already voted' })
+  if (b.status === 'rejected') return s.json({ rejected: true })
+  if (b.status === 'accepted') return s.status(409).json({ error: 'This ballot was already opened elsewhere. Request a new one.' })
+  s.json({ pending: true })
 })
 
 r.post('/v/:vid/vote', async (q, s) => {

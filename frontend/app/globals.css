@@ -31,7 +31,10 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--pen);outline-of
 .pill{font:500 .8rem system-ui,sans-serif;border:1px solid var(--ink);border-radius:99px;padding:.1rem .6rem;vertical-align:middle;margin-left:.4rem}
 .feed{margin:.2rem 0;color:var(--pen)}
 table{width:100%;border-collapse:collapse;font-size:.95rem;margin-top:1rem}
+th{text-align:left;font:600 .8rem system-ui,sans-serif;color:var(--mute);padding:0 .5rem .4rem 0;border-bottom:1px solid var(--line)}
 td{border-bottom:1px solid var(--line);padding:.4rem .5rem .4rem 0}
+.toggle{display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;cursor:pointer;font:600 .95rem system-ui,sans-serif}
+.toggle input{width:auto;margin:0}
 .flag{color:var(--warn)}
 .res{list-style:none;padding:0;margin:1rem 0}
 .res li{position:relative;display:flex;justify-content:space-between;padding:.7rem .9rem;border:1px solid var(--line);margin-bottom:.5rem}

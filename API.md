@@ -17,19 +17,24 @@ you to the password prompt, not past it. Send `Authorization: Bearer <token>` on
 | `POST /manage/:mid/state` `{to}` | `published`, then `open`, then `closed` |
 | `POST /manage/:mid/password` `{password}` | `{token}`; old tokens stop working |
 | `POST /manage/:mid/unlock` `{password}` | `{token}`, valid 24h; wrong guesses back off 1s, 2s, 4s... per vote |
+| `POST /manage/:mid/auto-accept` `{on}` | `{autoAccept}`. Off (default): requests wait for accept/reject. On: issued immediately |
+| `POST /manage/:mid/ballots/accept` `{identifier}` | `{ok}`. 409 if that identifier has no pending request |
+| `POST /manage/:mid/ballots/reject` `{identifier}` | `{ok}`. 409 if that identifier has no pending request |
 | `DELETE /manage/:mid` | deletes the vote, every ballot and every count |
 
 ## Voter
 | Call | Result |
 |---|---|
 | `GET /v/:vid` | `{state, idLabel}`, plus `question` and `results` once closed. 404 while draft or after delete |
-| `POST /v/:vid/ballot` `{identifier}` | `{code, question, options:[{id,text}]}`. Asking again cancels the earlier unused ballot. 409 if that identifier already voted |
+| `POST /v/:vid/ballot` `{identifier}` | Auto-accept on: `{code, question, options:[{id,text}]}`. Off: `{pending:true}` — poll `/ballot/claim`. Asking again cancels the earlier request. 409 if that identifier already voted |
+| `POST /v/:vid/ballot/claim` `{identifier}` | `{code, question, options}` once accepted (one-time; hand it off and it's gone), `{pending:true}` while waiting, `{rejected:true}` if turned down |
 | `POST /v/:vid/vote` `{code, optionId}` | `{ok}`. Final. Ballot is single-use |
 | `GET /events/:vid` | server-sent events. Each `data: 1` means something changed, so refetch |
 
 ## Notes
 - Voter IDs are 4 consonants (`VOTER_ID_LENGTH` to change), case-insensitive: `/kqzb` and `/KQZB` are the same vote.
-- Set a password first. `PUT` and `state` return `403 {needsPassword:true}` until `POST /manage/:mid/password` (6+ characters).
+- Set a password first. `PUT`, `state`, `auto-accept`, and `ballots/*` return `403 {needsPassword:true}` until `POST /manage/:mid/password` (6+ characters).
 - `PUT` also takes `expected`, an optional number of voters.
-- `GET /manage/:mid` returns `flags: [{type, text, at?}]`. Types: `after-vote`, `repeat`, `lookalike`, `stuffing`, `burst`, `password`.
+- `GET /manage/:mid` returns `flags: [{type, text, at?}]` and `autoAccept`. Roll rows include `status`: `pending`, `accepted`, or `rejected`.
+- A ballot's code is generated only at accept time (or immediately, if auto-accept is on) and is discarded the moment `/ballot/claim` hands it back — it is never stored longer than that gap.
 - Votes delete themselves `VOTE_TTL_DAYS` (default 7, 0 = never) after creation. `expiresAt` says when.

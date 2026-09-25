@@ -32,6 +32,8 @@ export default function Manage() {
   const token = r => { sessionStorage.setItem(key, r.token); setPw('') }
   const unlock = act(async () => { token(await api('/manage/' + id + '/unlock', { method: 'POST', body: { password: pw } })); load(true) })
   const lock = act(async () => { token(await call('/password', { method: 'POST', body: { password: pw } })); load(false) })
+  const toggleAuto = act(async () => { await call('/auto-accept', { method: 'POST', body: { on: !d.autoAccept } }); load(false) })
+  const decide = (identifier, action) => act(async () => { await call('/ballots/' + action, { method: 'POST', body: { identifier } }); load(false) })
   const del = act(async () => {
     if (!confirm('Delete this vote? Every ballot and vote is deleted immediately.')) return
     await call('', { method: 'DELETE' }); setGone(true)
@@ -86,6 +88,12 @@ export default function Manage() {
       <button className="o" onClick={() => navigator.clipboard.writeText(link)}>Copy</button></div>
     <p className="hint">{d.state === 'draft' ? 'Not live until you publish.' : d.state === 'published' ? 'Live. Voters see “not open yet”.' : ''}</p>
 
+    {d.state !== 'closed' && <>
+      <h2>Ballot requests</h2>
+      <label className="toggle"><input type="checkbox" checked={d.autoAccept} onChange={toggleAuto} /> Auto-accept ballot requests</label>
+      <p className="hint">{d.autoAccept ? 'A request gets a ballot the moment someone asks.' : 'Each request waits here for you to accept or reject it.'}</p>
+    </>}
+
     {step && <p><button onClick={go(step[0])}>{step[1]}</button></p>}
     {d.state === 'published' && <p className="hint">Once voting is open there is no going back.</p>}
 
@@ -98,9 +106,15 @@ export default function Manage() {
       {d.feed.slice(0, 5).map((f, n) => <p key={n} className="feed">{f} has just voted</p>)}
     </>}
     {d.state === 'closed' && <><h2>Results</h2><Results rows={d.results} /><p className="hint">{voted} voted, {d.roll.length} requested a ballot.</p></>}
-    {d.roll.length > 0 && d.state !== 'published' && <table><tbody>{d.roll.map(r => <tr key={r.identifier}>
-      <td>{r.identifier}</td><td>{r.voted ? 'voted' : 'waiting'}</td>
-      <td className="flag">{[r.requests > 1 && `requested ${r.requests} times`, r.afterVote > 0 && `asked again after voting (${r.afterVote})`].filter(Boolean).join(', ')}</td></tr>)}</tbody></table>}
+    {d.roll.length > 0 && d.state !== 'published' && <table><thead><tr><th>Who</th><th>Status</th><th>Flags</th><th></th></tr></thead><tbody>{d.roll.map(r => <tr key={r.identifier}>
+      <td>{r.identifier}</td>
+      <td>{r.voted ? 'voted' : r.status === 'pending' ? 'pending' : r.status === 'rejected' ? 'rejected' : 'waiting'}</td>
+      <td className="flag">{[r.requests > 1 && `requested ${r.requests} times`, r.afterVote > 0 && `asked again after voting (${r.afterVote})`].filter(Boolean).join(', ')}</td>
+      <td>{!r.voted && r.status === 'pending' && d.state === 'open' && <>
+        <button className="o" onClick={decide(r.identifier, 'accept')}>Accept</button>{' '}
+        <button className="o" onClick={decide(r.identifier, 'reject')}>Reject</button>
+      </>}</td>
+    </tr>)}</tbody></table>}
 
     <p className="hint">Locked with your password. Closing this tab locks it again.</p>
 

@@ -6,9 +6,9 @@ Somewhere that changed. Voting has become harder. The digital tools to vote seem
 
 vote-min is an open-source package trying to reclaim that older simplicity. It works like a traditional polling station: you're the chair, people request a ballot by name, they vote in secret, you get a result nobody can trace back to a person. No accounts, no complexity, no friction—just secret ballots which are enough for small, trusted groups.
 
-And in hybrid meetings, it solves the coordination problem stopping secret ballet: paper ballots for people in the room, a simple web page for people remote. Same privacy protection across both.
+And in hybrid meetings, it solves the coordination problem stopping secret votes: paper ballots for people in the room, a simple web page for people remote. Same privacy protection across both.
 
-Check it out on GitHub. I'd love to hear how it works in practice.
+Let me know how it works in practice, and whether it has been helpful and/or useful for you.
 
 ## Installation
 One question, one ballot each. No accounts, no cookies, no device data. Public API: see API.md.

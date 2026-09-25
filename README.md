@@ -183,6 +183,41 @@ The test for any proposed feature is whether it can be explained without also ex
 "nobody, including the organiser, can find out what a specific person chose." If it can't, it doesn't go in
 — not because it's a bad idea in general, but because it's a different tool.
 
+## Legal and structural secrecy (and why there's no vote-level audit log)
+In British Columbia, housing co-operatives (Cooperative Association Act), societies
+(Societies Act), and strata corporations (Strata Property Act) routinely require secret
+ballots. But standard digital voting tools introduce a legal trap: they confuse
+administrative policy with structural secrecy.
+
+BC is not unique here: the same principle applies across common-law jurisdictions, from US
+labor law (LMRDA) and California HOA statutes to UK corporate and parliamentary ballot
+traditions.
+
+Courts take an uncompromising view of what "secret" means. In Imbeau v. Strata Plan NW971
+(2011 BCSC 801), the BC Supreme Court established that a secret ballot isn't just a promise
+from the chair not to look. If a voting system makes it structurally or forensically
+possible for anyone—a chair, a system administrator, or a database operator—to trace a
+choice back to an identity, the ballot is compromised.
+
+Most off-the-shelf polling tools fail this test. They log choices alongside user accounts, IP
+addresses, or relational database keys, and then ask you to trust that nobody looks at the
+admin table. 
+
+vote-min turns that around:
+- Structural impossibility, not policy promises. Casting a vote increments a running
+  total (N = N + 1). No database record, transaction log, or foreign key linking a voter to
+  an answer is ever written, anywhere.
+- Zero forensic footprint. No cookies, no IP logging, no device fingerprinting. Even a
+  forensic dump of the database disk cannot reveal who voted for what, because that link was
+  never created in memory in the first place.
+- Roll transparency. Society, co-op, and corporate laws require verifying eligibility and
+  turnout. vote-min handles this the same way a polling station clerk does: by maintaining a
+  live register of who asked for a ballot and who voted, completely separated from the tally
+  box.
+
+By refusing to build a vote-level audit trail, vote-min provides structural ballot secrecy
+that logging-heavy enterprise tools cannot deliver.
+
 ## Verifying a deployment
 Any running instance exposes what commit it was actually started from, so a voter or organiser doesn't have
 to just take a deployer's word for what's running: `GET /v1/version` on the backend, and the frontend bakes

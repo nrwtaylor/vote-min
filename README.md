@@ -8,7 +8,7 @@ vote-min is an open-source package trying to reclaim that older simplicity. It w
 
 And in hybrid meetings, it solves the coordination problem stopping secret votes: paper ballots for people in the room, a simple web page for people remote. Same privacy protection across both.
 
-Let me know how it works in practice, and whether it has been helpful and/or useful for you.
+Let me know how it works in practice, and whether it has been helpful and/or useful for you. You can explore it live and use it at `https://stackr.ca/vote`.
 
 ## Installation
 One question, one ballot each. No accounts, no cookies, no device data. Public API: see API.md.

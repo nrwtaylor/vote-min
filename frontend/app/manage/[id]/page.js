@@ -37,7 +37,7 @@ export default function Manage() {
     await call('', { method: 'DELETE' }); setGone(true)
   })
 
-  if (gone) return <><h1>Vote deleted</h1><p>The question, every ballot and every vote have been deleted. Nothing is kept.</p><a href="/">Create another vote</a></>
+  if (gone) return <><h1>Vote deleted</h1><p>The question, every ballot and every vote have been deleted. Nothing is kept.</p><a href={(process.env.NEXT_PUBLIC_BASE_PATH || '') + '/'}>Create another vote</a></>
   if (locked) return <><h1>Password needed</h1>
     <form onSubmit={e => { e.preventDefault(); unlock() }}><input type="password" value={pw} onChange={e => setPw(e.target.value)} autoFocus aria-label="Password" />
       <button>Unlock</button></form><p className="err">{err}</p></>
@@ -53,7 +53,9 @@ export default function Manage() {
     <p className="err">{err}</p>
     <Kept who="manager" />
   </>
-  const ed = editable(), step = STEP[d.state], link = location.origin + '/' + d.voterId, voted = d.roll.filter(r => r.voted).length
+  const ed = editable(), step = STEP[d.state]
+  const link = location.origin + (process.env.NEXT_PUBLIC_BASE_PATH || '') + '/' + d.voterId
+  const voted = d.roll.filter(r => r.voted).length
   return <>
     <h1>Manage vote <span className="pill">{d.state}</span></h1>
     <div className="note"><b>Do not share this page’s address.</b> Anyone who has it can run or delete this vote. Share only the voter link below.</div>

@@ -60,7 +60,7 @@ app.use((q, s, n) => { // open CORS is safe: no cookies, manage calls carry a Be
   s.set({ 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' })
   q.body ??= {}; q.method === 'OPTIONS' ? s.sendStatus(204) : n()
 })
-app.use('/api/v1', r)
+app.use('/v1', r)
 
 const mgr = async (q, s, n) => {
   const p = await polls.findOne({ _id: q.params.mid })
@@ -174,4 +174,4 @@ r.post('/v/:vid/vote', async (q, s) => {
   feed.set(p._id, [b.ballots.find(x => x.h === h).k, ...(feed.get(p._id) || [])].slice(0, 50)); ping(p.voterId); s.json({ ok: true })
 })
 
-app.listen(process.env.PORT || 4000, process.env.HOST || '127.0.0.1', () => console.log('vote-min API on /api/v1'))
+app.listen(process.env.PORT || 4000, process.env.HOST || '127.0.0.1', () => console.log('vote-min API on /v1'))

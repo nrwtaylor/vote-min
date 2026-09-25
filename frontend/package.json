@@ -1,2 +1,6 @@
-{"name":"vote-min-frontend","private":true,"scripts":{"dev":"next dev -p 3000","build":"next build","start":"next start -p 3000"},
+{"name":"vote-min-frontend","private":true,
+"scripts":{
+"dev":"next dev -p 3049",
+"build":"next build",
+"start":"next start -p 3049"},
 "dependencies":{"next":"^15.0.0","react":"^19.0.0","react-dom":"^19.0.0"}}

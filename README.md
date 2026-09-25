@@ -1,4 +1,16 @@
 # vote-min
+## Why you might want to check out vote-min
+Voting used to be simple. For hundreds of years, and longer, in strata meetings, co-ops, committees, societies—anywhere a group needed to make a decision—it worked like this: you gathered, you asked the question, people voted in secret or raised their hand, you counted, you moved on. Trust and transparency, no infrastructure required.
+
+Somewhere that changed. Voting has become harder. The digital tools to vote seem to fall into two extremes. Either they're simple polls—no secrecy, just a digitized show of hands. Or they're cryptographically complex: accounts, email verification, passwords, infrastructure to maintain. For a small group voting on a budget or a motion, both feel like overkill.
+
+vote-min is an open-source package trying to reclaim that older simplicity. It works like a traditional polling station: you're the chair, people request a ballot by name, they vote in secret, you get a result nobody can trace back to a person. No accounts, no complexity, no friction—just secret ballots which are enough for small, trusted groups.
+
+And in hybrid meetings, it solves the coordination problem stopping secret ballet: paper ballots for people in the room, a simple web page for people remote. Same privacy protection across both.
+
+Check it out on GitHub. I'd love to hear how it works in practice.
+
+## Installation
 One question, one ballot each. No accounts, no cookies, no device data. Public API: see API.md.
 
     cd backend  && npm install && cp .env.example .env   # then edit .env, see below — must exist, even if empty

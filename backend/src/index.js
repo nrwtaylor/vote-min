@@ -145,8 +145,9 @@ r.post('/manage/:mid/ballots/reject', mgr, needPw, async (q, s) => {
 
 r.post('/manage/:mid/password', mgr, async (q, s) => {
   const pw = String(q.body.password || ''); if (pw.length < 6) return s.status(400).json({ error: 'Use at least 6 characters' })
+  if (!q.poll.pw && !q.body.agree) return s.status(400).json({ error: 'You need to confirm you have read the guide and agree to the terms.' })
   const p = { ...q.poll, pw: hashPw(pw) }
-  await polls.updateOne({ _id: p._id }, { $set: { pw: p.pw } }); s.json({ token: mint(p) })
+  await polls.updateOne({ _id: p._id }, { $set: { pw: p.pw, ...(!q.poll.pw && { termsAgreedAt: new Date() }) } }); s.json({ token: mint(p) })
 })
 
 r.delete('/manage/:mid', mgr, async (q, s) => {

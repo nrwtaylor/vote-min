@@ -1,11 +1,19 @@
 # vote-min
 One question, one ballot each. No accounts, no cookies, no device data. Public API: see API.md.
 
-    cd backend  && npm install && MONGO_URL=mongodb://... VOTE_MIN_SECRET=$(openssl rand -hex 32) npm start
-    cd frontend && npm install && npm run dev        # set API=http://host:4000 if the backend is elsewhere
+    cd backend  && npm install && cp .env.example .env   # then edit .env, see below — must exist, even if empty
+    npm start                                            # reads backend/.env automatically (Node 20.6+)
+    cd frontend && npm install && cp .env.local.example .env.local  # set API= to the backend's address
+    npm run dev
 
-Backend env: MONGO_URL, MONGO_DB (vote-min), VOTE_MIN_SECRET (signs manage tokens), PORT (4000),
-HOST (127.0.0.1; put TLS and a reverse proxy in front for public use), CORS_ORIGIN (*).
+Backend env, in `backend/.env` (see `.env.example`) or exported in the shell — either works, `.env` just
+saves retyping it every restart: MONGO_URL, MONGO_DB (vote-min), VOTE_MIN_SECRET (signs manage tokens,
+generate with `openssl rand -hex 32`, keep it stable across restarts), PORT (4000), HOST (127.0.0.1; put TLS
+and a reverse proxy in front for public use), CORS_ORIGIN (*).
+
+`npm start` uses `--env-file=.env` (Node 20.6+), which errors if `backend/.env` doesn't exist — so run the
+`cp .env.example .env` step above even if you don't set anything else. On older Node, drop that flag from
+`package.json` and `export` the variables in your shell before `npm start` instead.
 
 Stored, in one MongoDB document per vote: question, answers, a count per answer, each identifier that
 requested a ballot (voted or not, request counts), a hash of its live ballot code, and a password hash if set.
@@ -15,3 +23,182 @@ server backups or a replica-set oplog may still hold it, so those are outside th
 
 More env: VOTER_ID_LENGTH (4), VOTE_TTL_DAYS (7; 0 disables auto-delete).
 Also stored: counts of unusual activity (wrong password attempts, bursts of new names).
+
+## For voters
+This is also published in the app itself, at `/about`.
+
+**Requesting a ballot.** You'll be asked for a name or number — whatever the organiser chose to identify
+voters by. Type it in and click Request ballot. This isn't a login: there's no account and nothing to
+remember afterwards. Its only job is to make sure each person votes once.
+
+**Sometimes you'll wait for approval.** Some votes are set up so the organiser accepts each request by
+hand, rather than issuing ballots automatically. If so, you'll see "Waiting for approval" after you ask —
+the page updates on its own once a decision is made, so there's nothing to refresh. If your request isn't
+accepted, you can simply try again.
+
+**Casting your vote.** Once your ballot is ready, the question and answers appear. Pick one and you'll be
+asked to confirm — this step exists because voting is final. Once it's submitted, that's it.
+
+**Your identifier and your vote aren't linked.** This is true, and it's built in rather than promised: the
+system remembers *whether* your identifier has voted, so it can stop a second vote and so the organiser can
+see turnout. It does not remember *what* you chose. Casting a vote only adds one to a running total for the
+answer you picked — your individual choice is never written down anywhere, against your identifier or
+otherwise. There's nothing to unlink later, because it was never linked in the first place.
+
+**Once you've voted, that's final.** Each ballot works once. If you try to request another with the same
+identifier after voting, it's refused — and the organiser sees that someone tried, which is one of the ways
+attempts to vote twice get noticed.
+
+**If you lose your ballot.** Closing the tab or refreshing the page loses your in-progress ballot, by design
+— nothing is saved in your browser. Just ask again with the same identifier. If you haven't voted yet, this
+replaces the old request with a new one (and, if approval is required, puts you back in the queue).
+
+## For the vote manager
+This is also published in the app itself, at `/manage/about`, and gated behind a checkbox before a password
+can be set.
+
+**No accounts, by design.** There's no login for you and no login for voters. This isn't an oversight — it
+matches a model of running an election that has been sufficient for a long time. For most of its history,
+voting at a UK polling station meant giving your name, having it found and ticked off the register, and
+being handed a ballot. No photo ID was checked. Requiring ID at the polling station is a recent policy
+change, not a precondition for the vote before it to have counted. The older model relied on the roll and on
+people noticing if an entry had already been used — not on verifying identity in advance. vote-min follows
+that older, longer-standing model. Anyone who types an identifier is trusted to be who they say, the same way
+anyone who gave a name at a polling station was.
+
+**The roll is built as people vote.** You don't supply a list of voters beforehand. The first person to
+request a ballot under a given name or number creates that entry; it's ticked off the moment they vote. This
+is the electoral roll for this vote, assembled live rather than handed to you in advance.
+
+**Detection, not prevention.** A polling clerk doesn't stop someone impersonating a registered voter with
+cryptography — they notice when a name comes up twice and someone has to explain themselves. This system
+works the same way. It can't verify that "Unit 12" is really Unit 12, but it watches for the signs a human
+clerk would watch for, and shows them to you: the same identifier asking for a ballot more than once, an
+identifier asking again *after* it has already voted, a burst of new names arriving together. None of this
+stops a determined impersonator by itself. It's what lets you notice — the same way the clerk noticed.
+
+**What this is proportionate for.** This model suits small organisations, and organisations that understand
+what they're opting into: a vote where the people involved are known to each other or to you, where the
+worst case is a disagreement you can resolve by looking at the roll, and where nobody stands to gain enough
+from cheating undetected to bother trying. It is not suited to a vote where a stranger has a real incentive
+to impersonate someone else, or where the result needs to stand up as independently verified — a shareholder
+vote with legal force, a public election, anything where "we're confident nothing looked wrong" isn't a
+strong enough guarantee.
+
+**Once opened, the question is fixed.** You can edit the question and answers freely before opening. The
+moment you open voting, that stops — permanently, not just until you unlock something. There's no
+administrative override. This is deliberate: a question that could still change after people start answering
+it isn't a fair one.
+
+**Once cast, a vote is final.** A ballot paper, once it's in the box, cannot be pulled back out — not by the
+voter, not by the returning officer. The same is true here. A cast vote cannot be withdrawn, changed, or
+identified for removal, by you or by anyone else, because of how the next section works.
+
+**Secrecy, privacy, and anonymity are not the same thing.** These three get run together often, including in
+real elections, so it's worth being precise about which ones apply here.
+- *Anonymity* would mean nobody knows who took part. This system doesn't offer that, and doesn't claim to.
+  You see the roll: every identifier that requested a ballot, and whether it voted. That's what makes
+  double-voting detectable at all, and it's exactly how a paper register works.
+- *Secrecy of the ballot* means nobody, including you, can find out what a specific person chose. This
+  system does provide that — not as a policy, but structurally. Casting a vote only adds one to a running
+  total for the chosen answer. Nothing anywhere records which option a given identifier picked. There's no
+  field to look up and no query that could reveal it, because the information was never written down in the
+  first place.
+- *Privacy* is broader: minimal collection, nothing tracked, nothing kept beyond what the vote needs,
+  everything gone when you delete it. This system has that too — no cookies, no IP logging, no device
+  fingerprinting. But this is privacy from outside observers and from unnecessary technical exhaust, not
+  privacy from you. You are always able to see who took part.
+
+So, plainly: **this system is private. It does not provide anonymity. It does not provide authenticated
+privacy** — nobody's claimed identifier is ever verified, so "privacy" here can't mean privacy for a
+confirmed individual, only for whoever used that identifier.
+
+**What you're responsible for.** The password is yours to keep; there is no reset. The manage address (or
+the vote's own code, once you've set a password) is what lets anyone run or delete the vote — sharing it is
+sharing control, not just visibility. While voting is open, the roll and the flags are worth watching, the
+way a clerk would watch a register. Deleting a vote is immediate and irreversible, for the question, every
+ballot, and every vote.
+
+## Voter fraud: what this does and doesn't stop
+No voting system, paper or digital, stops a determined impersonator who's willing to be a specific other
+person. This isn't a limitation of vote-min in particular — it's true of polling-station elections with
+photo ID checks too, and worth being concrete about rather than hand-wavy:
+
+- A twin, or any sibling who resembles the person on the card, hands over a driving licence at the polling
+  station. The photo is a reasonable match. Nothing about the ID-check process catches this, because it was
+  never designed to distinguish between two people who look alike — only to confirm the card matches *a*
+  face plausibly.
+- A household where everyone knows everyone else's unit number or login simply decides among themselves who
+  votes. One person types in four different flatmates' identifiers over the course of an evening because
+  the others "don't care" or are out. Nothing about a typed identifier proves who is holding the keyboard.
+- Postal and proxy voting, even in binding national elections, are well-documented as the highest-fraud
+  channels precisely because the link between the person and the vote is asserted, not checked at the point
+  of casting. A signature match is a weaker control than it sounds.
+- Coercion is a different failure mode entirely and no identity check touches it: someone standing over a
+  voter's shoulder, telling them what to pick, is invisible to any system that only verifies *who* is voting,
+  never *how freely*.
+
+vote-min's threat model is explicit rather than implied: it detects the clumsy, high-volume version of these
+problems (the same identifier voting twice, a burst of unfamiliar names, a request coming in right after
+someone already voted) and puts that in front of a human who knows the group well enough to judge it. It does
+not, and cannot, stop a single determined person willing to correctly guess or borrow one other person's
+identifier and use it once. Every voting system, including ones with photo ID and CCTV, accepts some version
+of this trade-off; vote-min just doesn't pretend otherwise.
+
+## Design philosophy
+vote-min tries to be the smallest possible thing that is still honestly a secret ballot: one question, one
+vote each, a tally that never records who chose what, and a result that can't be produced or interpreted any
+other way once it's in. Everything in the codebase earns its place against that, and not much else does.
+
+Deliberately absent, and not accidentally missing:
+- **Multiple questions in one vote.** A "ballot" here is one question with a fixed set of answers. If you
+  have several motions, that's several votes. Spin up another one — creating a vote takes one click and the
+  whole app is built around that being cheap. Bundling unrelated motions into a single ballot is how a
+  result on one question gets used to justify a decision nobody actually voted on for that specific question.
+- **Ranked choice, weighted votes, delegation, abstain-with-reason, discussion threads, comment sections.**
+  Every one of these is a reasonable feature for some tool. None of them is compatible with "the tally is the
+  only thing that exists" — the moment a vote carries anything beyond which single answer was picked, that
+  extra data is either linkable back to the voter or it's dead weight. vote-min chooses not to carry it.
+- **Roles, permissions, multiple organisers, audit exports, an admin dashboard across votes.** One vote, one
+  password, one document. Add a second organiser and you've added a second person who can delete the whole
+  thing; add a dashboard and you've added a place that lists every vote a person has ever run. Neither is
+  free, and neither is required for the thing to work.
+- **Accounts, for anyone.** Covered elsewhere in this README, but it's a design choice as much as a privacy
+  one: an account is state that outlives any single vote, and outlasting the vote is exactly what nothing
+  here is supposed to do.
+
+The test for any proposed feature is whether it can be explained without also explaining an exception to
+"nobody, including the organiser, can find out what a specific person chose." If it can't, it doesn't go in
+— not because it's a bad idea in general, but because it's a different tool.
+
+## Serving the frontend under a subpath (e.g. /vote)
+Set `BASE_PATH=/vote` in `frontend/.env.local` (no trailing slash) and rebuild/restart. `<Link>` and
+`router.push` pick it up automatically; the app's own `fetch`/`EventSource` calls and the voter-link
+generator read it from `NEXT_PUBLIC_BASE_PATH`, which `next.config.js` sets from `BASE_PATH`. A reverse
+proxy that forwards `/vote` and `/vote/*` to this app's port, preserving the path, is all that's needed
+in front of it.
+
+## Running the frontend under pm2
+    cd frontend && npm install && cp .env.local.example .env.local   # fill in .env.local first, see above
+    npm run build                                          # bakes in BASE_PATH; pm2 only serves this output
+    pm2 start ecosystem.config.cjs
+    pm2 save
+
+    pm2 logs vote-frontend
+    npm run build && pm2 restart vote-frontend   # after any change to .env.local or the code — a plain
+                                                  # restart alone reuses the old build, not the new settings
+    pm2 stop vote-frontend
+
+## Running the backend under pm2
+    cd backend && npm install && cp .env.example .env   # fill in .env first, see above
+    pm2 start ecosystem.config.cjs
+    pm2 save                                             # persist across reboots
+    pm2 startup                                          # then run the command it prints, once, as root
+
+    pm2 logs vote-backend
+    pm2 restart vote-backend   # e.g. after editing .env — pm2 does not reload .env on its own
+    pm2 stop vote-backend
+
+Runs as a single instance on purpose: the live "just voted" feed and SSE connections live in server memory,
+not Mongo, so a second instance wouldn't see the first's events. Put a reverse proxy (nginx, Caddy) in front
+for TLS and to serve the frontend and backend under one domain; the backend's own HOST/PORT stay as in .env.

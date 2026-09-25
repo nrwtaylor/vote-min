@@ -35,6 +35,8 @@ th{text-align:left;font:600 .8rem system-ui,sans-serif;color:var(--mute);padding
 td{border-bottom:1px solid var(--line);padding:.4rem .5rem .4rem 0}
 .toggle{display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;cursor:pointer;font:600 .95rem system-ui,sans-serif}
 .toggle input{width:auto;margin:0}
+.agree{display:flex;align-items:flex-start;gap:.5rem;margin:.75rem 0;cursor:pointer}
+.agree input{width:auto;margin:.3rem 0 0}
 .flag{color:var(--warn)}
 .res{list-style:none;padding:0;margin:1rem 0}
 .res li{position:relative;display:flex;justify-content:space-between;padding:.7rem .9rem;border:1px solid var(--line);margin-bottom:.5rem}

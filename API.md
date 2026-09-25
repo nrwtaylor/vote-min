@@ -15,7 +15,7 @@ you to the password prompt, not past it. Send `Authorization: Bearer <token>` on
 | `GET /manage/:mid` | full state, roll, feed, results when closed. `401 {locked:true}` if a token is needed |
 | `PUT /manage/:mid` `{question, idLabel, options[]}` | draft or published only |
 | `POST /manage/:mid/state` `{to}` | `published`, then `open`, then `closed` |
-| `POST /manage/:mid/password` `{password}` | `{token}`; old tokens stop working |
+| `POST /manage/:mid/password` `{password, agree}` | `{token}`; old tokens stop working. `agree:true` required the first time a password is set (400 without it) — confirms reading `/manage/about` and the Terms of Service |
 | `POST /manage/:mid/unlock` `{password}` | `{token}`, valid 24h; wrong guesses back off 1s, 2s, 4s... per vote |
 | `POST /manage/:mid/auto-accept` `{on}` | `{autoAccept}`. Off (default): requests wait for accept/reject. On: issued immediately |
 | `POST /manage/:mid/ballots/accept` `{identifier}` | `{ok}`. 409 if that identifier has no pending request |

@@ -10,6 +10,7 @@ export default function Manage() {
   const { id } = useParams()
   const [d, setD] = useState(null), [locked, setLocked] = useState(false), [gone, setGone] = useState(false), [err, setErr] = useState('')
   const [q, setQ] = useState(''), [label, setLabel] = useState(''), [opts, setOpts] = useState(['', '']), [pw, setPw] = useState(''), [exp, setExp] = useState('')
+  const [agree, setAgree] = useState(false)
   const key = 'vm:' + id
   const call = (p, o = {}) => api('/manage/' + id + p, { ...o, token: sessionStorage.getItem(key) || '' })
   const load = async init => {
@@ -31,7 +32,7 @@ export default function Manage() {
   })
   const token = r => { sessionStorage.setItem(key, r.token); setPw('') }
   const unlock = act(async () => { token(await api('/manage/' + id + '/unlock', { method: 'POST', body: { password: pw } })); load(true) })
-  const lock = act(async () => { token(await call('/password', { method: 'POST', body: { password: pw } })); load(false) })
+  const lock = act(async () => { token(await call('/password', { method: 'POST', body: { password: pw, agree } })); load(false) })
   const toggleAuto = act(async () => { await call('/auto-accept', { method: 'POST', body: { on: !d.autoAccept } }); load(false) })
   const decide = (identifier, action) => act(async () => { await call('/ballots/' + action, { method: 'POST', body: { identifier } }); load(false) })
   const del = act(async () => {
@@ -50,7 +51,10 @@ export default function Manage() {
     <p>This page’s address is a key. A password stops anyone who sees the address from running or deleting your vote. You can’t set up the vote until this is done.</p>
     <form onSubmit={e => { e.preventDefault(); lock() }}>
       <input type="password" value={pw} minLength={6} autoFocus aria-label="Password" onChange={e => setPw(e.target.value)} />
-      <button>Set password</button></form>
+      <label className="agree"><input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} /><span>I have read
+        <a href={(process.env.NEXT_PUBLIC_BASE_PATH || '') + '/manage/about'} target="_blank" rel="noreferrer"> How this vote is run </a>
+        and agree to the <a href="https://stackr.ca/subscriptions/legal/terms-of-service" target="_blank" rel="noreferrer">Terms of Service</a></span></label>
+      <button disabled={!agree || pw.length < 6}>Set password</button></form>
     <p className="hint">At least 6 characters. There is no reset, so keep it safe.</p>
     <p className="err">{err}</p>
     <Kept who="manager" />
@@ -66,6 +70,7 @@ export default function Manage() {
     <div className="row"><input readOnly value={manageLink} onFocus={e => e.target.select()} aria-label="This page's address" />
       <button className="o" onClick={() => navigator.clipboard.writeText(manageLink)}>Copy</button></div>
     <div className="note"><b>Do not share this page’s address.</b> Anyone who has it can run or delete this vote. Share only the voter link below.</div>
+    <p className="hint"><a href={(process.env.NEXT_PUBLIC_BASE_PATH || '') + '/manage/about'}>How this vote is run</a></p>
 
     <h2>Question</h2>
     <fieldset disabled={!ed}>

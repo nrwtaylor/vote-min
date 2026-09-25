@@ -60,10 +60,13 @@ app.use((q, s, n) => { // open CORS is safe: no cookies, manage calls carry a Be
   s.set({ 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' })
   q.body ??= {}; q.method === 'OPTIONS' ? s.sendStatus(204) : n()
 })
-app.use('/v1', r)
+app.use('/v1', r) // no /api prefix here: that's nginx's job at the public boundary (see API.md)
+
+// The URL's :mid can be the long manage id, or the same short code used for the voter link.
+const findManaged = mid => polls.findOne({ $or: [{ _id: mid }, { voterId: String(mid).toUpperCase() }] })
 
 const mgr = async (q, s, n) => {
-  const p = await polls.findOne({ _id: q.params.mid })
+  const p = await findManaged(q.params.mid)
   if (!p) return s.status(404).json({ error: 'Not found' })
   if (p.pw && !valid(p, (q.headers.authorization || '').slice(7))) return s.status(401).json({ locked: true })
   q.poll = p; n()
@@ -81,7 +84,7 @@ r.post('/polls', async (q, s) => {
 })
 
 r.post('/manage/:mid/unlock', async (q, s) => {
-  const p = await polls.findOne({ _id: q.params.mid }); if (!p) return s.sendStatus(404)
+  const p = await findManaged(q.params.mid); if (!p) return s.sendStatus(404)
   const f = fails.get(p._id) || { n: 0, until: 0 }, now = Date.now()
   if (now < f.until) return s.status(429).json({ error: `Wait ${Math.ceil((f.until - now) / 1000)}s and try again` })
   if (!p.pw || !checkPw(String(q.body.password || ''), p.pw)) {

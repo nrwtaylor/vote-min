@@ -5,7 +5,7 @@ import Kept from './Kept'
 
 export default function Home() {
   const router = useRouter()
-  const create = async () => router.push('/manage/' + (await api('/polls', { method: 'POST' })).manageId)
+  const create = async () => router.push('/manage/' + (await api('/polls', { method: 'POST' })).voterId)
   return <>
     <h1>vote-min</h1>
     <p className="lede">One question. One ballot each.</p>

@@ -1,9 +1,13 @@
 # vote-min API v1
-Base `/api/v1`. JSON in and out. Errors are `{"error": "..."}`. CORS is open; there are no cookies.
-States run one way: draft, published, open, closed. Question and answers lock when a vote opens.
+Base path is `/v1` on the backend directly (e.g. `http://127.0.0.1:4000/v1`). Behind this deployment's nginx,
+the public base is `https://stackr.ca/api/cyanibex/v1`. JSON in and out. Errors are `{"error": "..."}`.
+CORS is open; there are no cookies. States run one way: draft, published, open, closed. Question and answers
+lock when a vote opens.
 
 ## Organiser
-The `manageId` is the secret. If a password is set, also send `Authorization: Bearer <token>`.
+`:mid` accepts either the `manageId` or the same short `voterId` code used for the voter link. A password
+is required before anything else works (see below), so this is safe: knowing a poll's public code only gets
+you to the password prompt, not past it. Send `Authorization: Bearer <token>` once you have one.
 
 | Call | Result |
 |---|---|

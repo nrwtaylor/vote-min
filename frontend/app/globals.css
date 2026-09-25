@@ -4,6 +4,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:1.0625rem/1.6 Charter,"Iowan Old Style",Georgia,serif}
 main{max-width:34rem;margin:0 auto;padding:3rem 1.25rem 1rem}
 h1{font-size:2.1rem;line-height:1.15;letter-spacing:-.02em;margin:0 0 .75rem}
+.voteid{font-size:2.1rem;line-height:1.15;letter-spacing:.08em;font-weight:700;margin:0 0 1rem;color:var(--pen)}
 h2{font:700 1rem/1.3 system-ui,sans-serif;margin:2rem 0 .5rem}
 .lede{font-size:1.25rem;margin-top:0}
 a{color:var(--pen)}

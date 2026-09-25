@@ -54,10 +54,15 @@ export default function Manage() {
     <Kept who="manager" />
   </>
   const ed = editable(), step = STEP[d.state]
-  const link = location.origin + (process.env.NEXT_PUBLIC_BASE_PATH || '') + '/' + d.voterId
+  const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
+  const link = location.origin + base + '/' + d.voterId
+  const manageLink = location.origin + base + '/manage/' + d.voterId
   const voted = d.roll.filter(r => r.voted).length
   return <>
     <h1>Manage vote <span className="pill">{d.state}</span></h1>
+    <p className="voteid">{d.voterId}</p>
+    <div className="row"><input readOnly value={manageLink} onFocus={e => e.target.select()} aria-label="This page's address" />
+      <button className="o" onClick={() => navigator.clipboard.writeText(manageLink)}>Copy</button></div>
     <div className="note"><b>Do not share this page’s address.</b> Anyone who has it can run or delete this vote. Share only the voter link below.</div>
 
     <h2>Question</h2>

@@ -15,6 +15,7 @@ button{font:600 .95rem system-ui,sans-serif;padding:.65rem 1rem;background:var(-
 button.o{background:transparent;color:var(--ink)}
 button.x{background:transparent;color:var(--warn);border-color:var(--warn)}
 button:disabled{opacity:.4;cursor:default}
+fieldset:disabled input{opacity:.55;cursor:default}
 input:focus-visible,button:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
 .row{display:flex;gap:.5rem;margin-bottom:.5rem;align-items:flex-start}
 .row input{flex:1;margin:0}

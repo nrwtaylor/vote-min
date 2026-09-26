@@ -12,10 +12,22 @@ export async function api(path, { method = 'GET', body, token } = {}) {
   return d
 }
 
-// The server only says "something changed"; the page then refetches.
+// The server only says "something changed"; the page then refetches. Some browsers give up retrying an
+// EventSource permanently after certain failures rather than backing off forever, so this closes and
+// reopens it manually on error instead of trusting the built-in retry alone.
 export function useLive(vid, fn) {
   const f = useRef(fn); f.current = fn
-  useEffect(() => { if (!vid) return; const es = new EventSource(BASE + '/api/v1/events/' + vid); es.onmessage = () => f.current(); return () => es.close() }, [vid])
+  useEffect(() => {
+    if (!vid) return
+    let es, closed = false, retry
+    const connect = () => {
+      es = new EventSource(BASE + '/api/v1/events/' + vid)
+      es.onmessage = () => f.current()
+      es.onerror = () => { es.close(); if (!closed) retry = setTimeout(connect, 3000) }
+    }
+    connect()
+    return () => { closed = true; clearTimeout(retry); es?.close() }
+  }, [vid])
 }
 
 export function Results({ rows }) {

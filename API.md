@@ -32,7 +32,8 @@ you to the password prompt, not past it. Send `Authorization: Bearer <token>` on
 |---|---|
 | `GET /v/:vid` | `{state, idLabel}`, plus `question` and `results` once closed. 404 while draft or after delete |
 | `POST /v/:vid/ballot` `{identifier}` | Auto-accept on: `{code, question, options:[{id,text}]}`. Off: `{pending:true}` — poll `/ballot/claim`. Asking again cancels the earlier request. 409 if that identifier already voted |
-| `POST /v/:vid/ballot/claim` `{identifier}` | `{code, question, options}` once accepted (one-time; hand it off and it's gone), `{pending:true}` while waiting, `{rejected:true}` if turned down |
+| `POST /v/:vid/ballot/claim` `{identifier}` | `{code, question, options}` once accepted (one-time; hand it off and it's gone), `{pending:true}` while waiting, `{rejected:true}` if turned down, `{superseded:true, reason}` if a newer request already claimed it or this identifier has since voted |
+| `POST /v/:vid/ballot/check` `{identifier, code}` | `{valid:true}` if this is still the live ballot for that identifier, else `{valid:false, reason}`. Read-only — call as often as needed. `reason`: `closed`, `voted`, `superseded`, `gone` |
 | `POST /v/:vid/vote` `{code, optionId}` | `{ok}`. Final. Ballot is single-use |
 | `GET /events/:vid` | server-sent events. Each `data: 1` means something changed, so refetch |
 

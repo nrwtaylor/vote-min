@@ -1,14 +1,26 @@
 # vote-min
+
 ## Why you might want to check out vote-min
-Voting used to be simple. For hundreds of years, and longer, in strata meetings, co-ops, committees, societies—anywhere a group needed to make a decision—it worked like this: you gathered, you asked the question, people voted in secret or raised their hand, you counted, you moved on. Trust and transparency, no infrastructure required.
+Voting used to be simple. For hundreds of years, and longer, in strata meetings, co-ops, committees,
+societies—anywhere a group needed to make a decision—it worked like this: you gathered, you asked the
+question, people voted in secret or raised their hand, you counted, you moved on. Trust and transparency, no
+infrastructure required.
 
-Somewhere that changed. Voting has become harder. The digital tools to vote seem to fall into two extremes. Either they're simple polls—no secrecy, just a digitized show of hands. Or they're cryptographically complex: accounts, email verification, passwords, infrastructure to maintain. For a small group voting on a budget or a motion, both feel like overkill.
+Somewhere that changed. Voting has become harder. The digital tools to vote seem to fall into two extremes.
+Either they're simple polls—no secrecy, just a digitized show of hands. Or they're cryptographically
+complex: accounts, email verification, passwords, infrastructure to maintain. For a small group voting on a
+budget or a motion, both feel like overkill.
 
-vote-min is an open-source package trying to reclaim that older simplicity. It works like a traditional polling station: you're the chair, people request a ballot by name, they vote in secret, you get a result nobody can trace back to a person. No accounts, no complexity, no friction—just secret ballots which are enough for small, trusted groups.
+vote-min is an open-source package trying to reclaim that older simplicity. It works like a traditional
+polling station: you're the chair, people request a ballot by name, they vote in secret, you get a result
+nobody can trace back to a person. No accounts, no complexity, no friction—just secret ballots which are
+enough for small, trusted groups.
 
-And in hybrid meetings, it solves the coordination problem stopping secret votes: paper ballots for people in the room, a simple web page for people remote. Same privacy protection across both.
+And in hybrid meetings, it solves the coordination problem stopping secret votes: paper ballots for people
+in the room, a simple web page for people remote. Same privacy protection across both.
 
-Let me know how it works in practice, and whether it has been helpful and/or useful for you. You can explore it live and use it at `https://stackr.ca/vote`.
+Let me know how it works in practice, and whether it has been helpful and/or useful for you. You can explore
+it live and use it at `https://stackr.ca/vote`.
 
 ## Installation
 One question, one ballot each. No accounts, no cookies, no device data. Public API: see API.md.
@@ -41,12 +53,13 @@ This is also published in the app itself, at `/about`.
 
 **Requesting a ballot.** You'll be asked for a name or number — whatever the organiser chose to identify
 voters by. Type it in and click Request ballot. This isn't a login: there's no account and nothing to
-remember afterwards. Its only job is to make sure each person votes once.
+remember afterwards. Its only job is to make sure each person votes once. Once you've submitted it, that
+field greys out and locks — the same tab won't let you request a second one by accident.
 
 **Sometimes you'll wait for approval.** Some votes are set up so the organiser accepts each request by
 hand, rather than issuing ballots automatically. If so, you'll see "Waiting for approval" after you ask —
 the page updates on its own once a decision is made, so there's nothing to refresh. If your request isn't
-accepted, you can simply try again.
+accepted, that field reopens and you can simply try again.
 
 **Casting your vote.** Once your ballot is ready, the question and answers appear. Pick one and you'll be
 asked to confirm — this step exists because voting is final. Once it's submitted, that's it.
@@ -61,9 +74,17 @@ otherwise. There's nothing to unlink later, because it was never linked in the f
 identifier after voting, it's refused — and the organiser sees that someone tried, which is one of the ways
 attempts to vote twice get noticed.
 
+**If a ballot says it's no longer valid.** Only the most recently requested ballot for a given identifier
+ever works. If the same identifier asks for another one — from this tab, another tab, another device, or a
+genuinely different person typing the same name — whichever ballot was issued before that stops working,
+live, even if you're already looking at it. You'll see a plain explanation of why rather than a confusing
+error at the moment you try to vote. If that wasn't you, it's worth mentioning to whoever's running the vote
+— it's exactly the kind of thing the roll is there to make visible.
+
 **If you lose your ballot.** Closing the tab or refreshing the page loses your in-progress ballot, by design
-— nothing is saved in your browser. Just ask again with the same identifier. If you haven't voted yet, this
-replaces the old request with a new one (and, if approval is required, puts you back in the queue).
+— nothing is saved in your browser. Reload the voting link and ask again with the same identifier —
+reloading is what resets that field, not anything you can do to it once it's locked. If you haven't voted
+yet, this replaces the old request with a new one (and, if approval is required, puts you back in the queue).
 
 ## For the vote manager
 This is also published in the app itself, at `/manage/about`, and gated behind a checkbox before a password
@@ -184,39 +205,42 @@ The test for any proposed feature is whether it can be explained without also ex
 — not because it's a bad idea in general, but because it's a different tool.
 
 ## Legal and structural secrecy (and why there's no vote-level audit log)
-In British Columbia, housing co-operatives (Cooperative Association Act), societies
-(Societies Act), and strata corporations (Strata Property Act) routinely require secret
-ballots. But standard digital voting tools introduce a legal trap: they confuse
-administrative policy with structural secrecy.
+This section isn't legal advice, and vote-min can't make a vote legally valid by itself — proper notice,
+quorum, and following your own bylaws are still on you and, if it matters, your own counsel. What it can
+speak to is a narrower question: what does it take for a ballot to actually count as *secret*, once you've
+decided you need one?
 
-BC is not unique here: the same principle applies across common-law jurisdictions, from US
-labor law (LMRDA) and California HOA statutes to UK corporate and parliamentary ballot
-traditions.
+In British Columbia, several statutes provide for secret ballots for housing co-operatives, societies, and
+strata corporations. The Cooperative Association Act's default meeting rules require certain votes to be by
+secret ballot outright. Under the Societies Act, the default is a show of hands, but secret ballot becomes
+required the moment two or more members ask for it, or the chair directs it. Strata corporations commonly
+put secret ballot in their own bylaws for exactly this reason. The same general pattern — secrecy available
+by default or by request — shows up well beyond BC: US labor law requires secret ballot for union officer
+elections (LMRDA Title IV), California's common-interest-development statute requires it for HOA elections
+and certain assessment votes, and the secret ballot itself has been a fixture of UK elections since the
+Ballot Act 1872.
 
-Courts take an uncompromising view of what "secret" means. In Imbeau v. Strata Plan NW971
-(2011 BCSC 801), the BC Supreme Court established that a secret ballot isn't just a promise
-from the chair not to look. If a voting system makes it structurally or forensically
-possible for anyone—a chair, a system administrator, or a database operator—to trace a
-choice back to an identity, the ballot is compromised.
+Once secrecy is required, courts have not been lenient about what counts. In *Imbeau v. Strata Plan NW971*,
+2011 BCSC 801, the BC Supreme Court set aside a strata's special-levy resolution because the way the ballot
+was conducted — cards filled in and handed to the chair and the strata's lawyer in view of others — let
+people see how their neighbours voted. The court held that a secret ballot means the choice must be
+*unknowable* to others, not just that everyone present agreed not to look. That was a paper-ballot case, not
+a software one, but the principle translates cleanly: a system that promises not to record who chose what is
+offering a policy, which depends on trust; a system that structurally never creates that record in the first
+place is offering the thing *Imbeau* actually requires.
 
-Most off-the-shelf polling tools fail this test. They log choices alongside user accounts, IP
-addresses, or relational database keys, and then ask you to trust that nobody looks at the
-admin table. 
-
-vote-min turns that around:
-- Structural impossibility, not policy promises. Casting a vote increments a running
-  total (N = N + 1). No database record, transaction log, or foreign key linking a voter to
-  an answer is ever written, anywhere.
-- Zero forensic footprint. No cookies, no IP logging, no device fingerprinting. Even a
-  forensic dump of the database disk cannot reveal who voted for what, because that link was
-  never created in memory in the first place.
-- Roll transparency. Society, co-op, and corporate laws require verifying eligibility and
-  turnout. vote-min handles this the same way a polling station clerk does: by maintaining a
-  live register of who asked for a ballot and who voted, completely separated from the tally
-  box.
-
-By refusing to build a vote-level audit trail, vote-min provides structural ballot secrecy
-that logging-heavy enterprise tools cannot deliver.
+Most polling software fails this test in a specific way: it logs the choice next to a user account, an IP
+address, or a database row, and then asks you to trust that nobody with access ever looks. vote-min doesn't
+ask for that trust, because there's nothing there to look at:
+- **Nothing to find, not just nothing to see.** Casting a vote is a single increment on a running total for
+  the chosen answer. No record — no row, no log entry, no transaction — ever links a specific ballot to a
+  specific choice. This isn't access control around sensitive data; the data simply doesn't exist.
+- **No forensic trail either.** No cookies, no IP logging, no device fingerprinting. A full disk image of the
+  database couldn't reveal who voted for what, because that link was never in memory to begin with, let
+  alone on disk.
+- **The roll stays separate, deliberately.** These Acts also require you to be able to confirm eligibility
+  and turnout, which is a different (and legitimate) need from ballot secrecy. vote-min handles it the way a
+  polling clerk does: a live register of who asked for a ballot and who voted, entirely apart from the tally.
 
 ## Verifying a deployment
 Any running instance exposes what commit it was actually started from, so a voter or organiser doesn't have

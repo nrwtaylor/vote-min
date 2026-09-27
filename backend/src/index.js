@@ -175,7 +175,7 @@ r.delete('/manage/:mid', mgr, async (q, s) => {
 
 r.get('/v/:vid', async (q, s) => {
   const p = await byV(q.params.vid); if (!p) return s.sendStatus(404)
-  s.json({ state: p.state, idLabel: p.idLabel, ...(p.state === 'closed' && { question: p.question, results: res(p) }) })
+  s.json({ state: p.state, idLabel: p.idLabel, ...(p.state === 'closed' && { question: p.question, results: res(p) }), expiresAt: TTL && p.createdAt ? new Date(+p.createdAt + TTL * 864e5) : null })
 })
 
 r.get('/events/:vid', async (q, s) => {

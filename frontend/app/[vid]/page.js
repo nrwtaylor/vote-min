@@ -98,6 +98,6 @@ export default function Voter() {
       </>)}
     <p className="err">{err}</p>
     <p className="hint"><a href={(process.env.NEXT_PUBLIC_BASE_PATH || '') + '/about'}>How does this work?</a></p>
-    <Kept who="voter" />
+    <Kept who="voter" expiresAt={i.expiresAt} />
   </>
 }

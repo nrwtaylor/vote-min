@@ -82,7 +82,7 @@ export default function Voter() {
           <form onSubmit={request}>
             <label htmlFor="id">{i.idLabel}</label>
             <div className="row"><input id="id" value={ident} maxLength={80} onChange={e => setIdent(e.target.value)} autoComplete="off" />
-              <button>{sending ? 'Requesting…' : locked ? 'Ballot requested' : 'Request ballot'}</button></div>
+              <button>{sending ? 'Requesting…' : locked ? 'Ballot issued' : 'Request ballot'}</button></div>
           </form>
         </fieldset>
         <p className="hint">If this identifier requests another ballot — from this tab, another tab, or another device — this one stops working. To start over in this tab, reload the page.</p>

@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react'
 import { api, useLive, Results } from '../../lib'
 import Kept from '../../Kept'
 
-const STEP = { draft: ['published', 'Publish vote'], published: ['open', 'Open voting'], open: ['closed', 'Close voting'] }
+const STAGE = { draft: 0, published: 1, open: 2, closed: 3 }
 
 export default function Manage() {
   const { id } = useParams()
   const [d, setD] = useState(null), [locked, setLocked] = useState(false), [gone, setGone] = useState(false), [err, setErr] = useState('')
   const [q, setQ] = useState(''), [label, setLabel] = useState(''), [opts, setOpts] = useState(['', '']), [pw, setPw] = useState(''), [exp, setExp] = useState('')
   const [agree, setAgree] = useState(false)
+  const [copied, setCopied] = useState(null) // 'manage' | 'voter' | null, briefly, after a successful copy
+  const [saved, setSaved] = useState(false) // briefly, after a successful save
   const key = 'vm:' + id
   const call = (p, o = {}) => api('/manage/' + id + p, { ...o, token: sessionStorage.getItem(key) || '' })
   const load = async init => {
@@ -24,6 +26,7 @@ export default function Manage() {
   const act = f => async () => { setErr(''); try { await f() } catch (e) { setErr(e.message) } }
   const editable = () => ['draft', 'published'].includes(d.state)
   const save = () => call('', { method: 'PUT', body: { question: q, idLabel: label, options: opts, expected: exp } }).then(setD)
+  const saveClick = act(async () => { await save(); setSaved(true); setTimeout(() => setSaved(false), 1500) })
   const go = to => act(async () => {
     if (to === 'open' && !confirm('Open voting? The question and answers lock for good.')) return
     if (to === 'closed' && !confirm('Close voting and show results? This is final.')) return
@@ -39,6 +42,10 @@ export default function Manage() {
     if (!confirm('Delete this vote? Every ballot and vote is deleted immediately.')) return
     await call('', { method: 'DELETE' }); setGone(true)
   })
+  const copy = (text, which) => async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(c => c === which ? null : c), 1500) }
+    catch { setErr('Could not copy automatically — select and copy it by hand instead.') }
+  }
 
   if (gone) return <><h1>Vote deleted</h1><p>The question, every ballot and every vote have been deleted. Nothing is kept.</p><a href={(process.env.NEXT_PUBLIC_BASE_PATH || '') + '/'}>Create another vote</a></>
   if (locked) return <><h1>Password needed</h1>
@@ -59,17 +66,22 @@ export default function Manage() {
     <p className="err">{err}</p>
     <Kept who="manager" />
   </>
-  const ed = editable(), step = STEP[d.state]
+
+  const ed = editable()
   const base = process.env.NEXT_PUBLIC_BASE_PATH || ''
   const link = location.origin + base + '/' + d.voterId
   const manageLink = location.origin + base + '/manage/' + d.voterId
   const voted = d.roll.filter(r => r.voted).length
+  const reached = stage => STAGE[d.state] >= STAGE[stage] // this stage or a later one
+
   return <>
     <h1>Manage vote <span className="pill">{d.state}</span></h1>
     <p className="voteid">{d.voterId}</p>
     <div className="row"><input readOnly value={manageLink} onFocus={e => e.target.select()} aria-label="This page's address" />
-      <button className="o" onClick={() => navigator.clipboard.writeText(manageLink)}>Copy</button></div>
-    <div className="note"><b>Do not share this page’s address.</b> Anyone who has it can run or delete this vote. Share only the voter link below.</div>
+      <button className="o" onClick={copy(manageLink, 'manage')}>{copied === 'manage' ? 'Copied!' : 'Copy'}</button></div>
+    <div className="note">
+<b>Don’t share this management link unnecessarily, and keep your password private.</b> Anyone with the link and password can manage or delete the vote. Share the voter link below with participants.
+</div>
     <p className="hint"><a href={(process.env.NEXT_PUBLIC_BASE_PATH || '') + '/manage/about'}>How this vote is run</a></p>
 
     <h2>Question</h2>
@@ -86,40 +98,54 @@ export default function Manage() {
       <input type="number" min="0" value={exp} placeholder="Optional" aria-label="Expected voters" onChange={e => setExp(e.target.value)} />
       <p className="hint">You’ll be warned if more identifiers ask for a ballot than you expect.</p>
     </fieldset>
-    {ed ? <p><button className="o" onClick={act(save)}>Save</button></p> : <p className="hint">Locked: voting has opened.</p>}
+    {ed ? <p><button className="o" onClick={saveClick}>{saved ? 'Saved' : 'Save'}</button></p> : <p className="hint">Locked: voting has opened.</p>}
 
-    <h2>Voter link</h2>
-    <div className="row"><input readOnly value={link} onFocus={e => e.target.select()} aria-label="Voter link" />
-      <button className="o" onClick={() => navigator.clipboard.writeText(link)}>Copy</button></div>
-    <p className="hint">{d.state === 'draft' ? 'Not live until you publish.' : d.state === 'published' ? 'Live. Voters see “not open yet”.' : ''}</p>
+    {/* Stage 1: publish — button stays, greys out and relabels once used; voter link and the next
+        stage's button cascade in below it. */}
+    <p><button disabled={d.state !== 'draft'} onClick={go('published')}>{d.state === 'draft' ? 'Publish vote' : 'Vote published'}</button></p>
 
-    {d.state !== 'closed' && <>
-      <h2>Ballot requests</h2>
-      <label className="toggle"><input type="checkbox" checked={d.autoAccept} onChange={toggleAuto} /> Auto-accept ballot requests</label>
-      <p className="hint">{d.autoAccept ? 'A request gets a ballot the moment someone asks.' : 'Each request waits here for you to accept or reject it.'}</p>
+    {reached('published') && <>
+      <h2>Voter link</h2>
+      <div className="row"><input readOnly value={link} onFocus={e => e.target.select()} aria-label="Voter link" />
+        <button className="o" onClick={copy(link, 'voter')}>{copied === 'voter' ? 'Copied!' : 'Copy'}</button></div>
+      <p className="hint">{d.state === 'published' ? 'Live. Voters see “not open yet”.' : ''}</p>
+
+      {d.state !== 'closed' && <>
+        <h2>Ballot requests</h2>
+        <label className="toggle"><input type="checkbox" checked={d.autoAccept} onChange={toggleAuto} /> Auto-accept ballot requests</label>
+        <p className="hint">{d.autoAccept ? 'A request gets a ballot the moment someone asks.' : 'Each request waits here for you to accept or reject it.'}</p>
+      </>}
+
+      {/* Stage 2: open — same pattern. */}
+      <p><button disabled={d.state !== 'published'} onClick={go('open')}>{d.state === 'published' ? 'Open vote' : reached('open') ? 'Voting open' : 'Open vote'}</button></p>
+      {d.state === 'published' && <p className="hint">Once voting is open there is no going back.</p>}
     </>}
 
-    {step && <p><button onClick={go(step[0])}>{step[1]}</button></p>}
-    {d.state === 'published' && <p className="hint">Once voting is open there is no going back.</p>}
-
-    {(d.state === 'open' || d.state === 'closed' || d.flags.length > 0) && <>
+    {(reached('open') || d.flags.length > 0) && <>
       <h2>Anything unusual</h2>
       {d.flags.length ? d.flags.map((f, n) => <p key={n} className="flag">{f.at && new Date(f.at).toLocaleTimeString() + ': '}{f.text}</p>) : <p className="hint">Nothing unusual so far.</p>}
     </>}
-    {d.state === 'open' && <>
-      <h2>{voted} voted, {d.roll.length} requested a ballot</h2>
-      {d.feed.slice(0, 5).map((f, n) => <p key={n} className="feed">{f} has just voted</p>)}
+
+    {reached('open') && <>
+      {d.state === 'open' && <>
+        <h2>{voted} voted, {d.roll.length} requested a ballot</h2>
+        {d.feed.slice(0, 5).map((f, n) => <p key={n} className="feed">{f} has just voted</p>)}
+      </>}
+      {d.roll.length > 0 && <table><thead><tr><th>Who</th><th>Status</th><th>Flags</th><th></th></tr></thead><tbody>{d.roll.map(r => <tr key={r.identifier}>
+        <td>{r.identifier}</td>
+        <td>{r.voted ? 'voted' : r.status === 'pending' ? 'pending' : r.status === 'rejected' ? 'rejected' : 'waiting'}</td>
+        <td className="flag">{[r.requests > 1 && `requested ${r.requests} times`, r.afterVote > 0 && `asked again after voting (${r.afterVote})`].filter(Boolean).join(', ')}</td>
+        <td>{!r.voted && r.status === 'pending' && d.state === 'open' && <>
+          <button className="o" onClick={decide(r.identifier, 'accept')}>Accept</button>{' '}
+          <button className="o" onClick={decide(r.identifier, 'reject')}>Reject</button>
+        </>}</td>
+      </tr>)}</tbody></table>}
+
+      {/* Stage 3: close. */}
+      <p><button disabled={d.state !== 'open'} onClick={go('closed')}>{d.state === 'open' ? 'Close vote' : 'Voting closed'}</button></p>
     </>}
-    {d.state === 'closed' && <><h2>Results</h2><Results rows={d.results} /><p className="hint">{voted} voted, {d.roll.length} requested a ballot.</p></>}
-    {d.roll.length > 0 && d.state !== 'published' && <table><thead><tr><th>Who</th><th>Status</th><th>Flags</th><th></th></tr></thead><tbody>{d.roll.map(r => <tr key={r.identifier}>
-      <td>{r.identifier}</td>
-      <td>{r.voted ? 'voted' : r.status === 'pending' ? 'pending' : r.status === 'rejected' ? 'rejected' : 'waiting'}</td>
-      <td className="flag">{[r.requests > 1 && `requested ${r.requests} times`, r.afterVote > 0 && `asked again after voting (${r.afterVote})`].filter(Boolean).join(', ')}</td>
-      <td>{!r.voted && r.status === 'pending' && d.state === 'open' && <>
-        <button className="o" onClick={decide(r.identifier, 'accept')}>Accept</button>{' '}
-        <button className="o" onClick={decide(r.identifier, 'reject')}>Reject</button>
-      </>}</td>
-    </tr>)}</tbody></table>}
+
+    {reached('closed') && <><h2>Results</h2><Results rows={d.results} /><p className="hint">{voted} voted, {d.roll.length} requested a ballot.</p></>}
 
     <p className="hint">Locked with your password. Closing this tab locks it again.</p>
 

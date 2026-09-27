@@ -127,30 +127,56 @@ it isn't a fair one.
 voter, not by the returning officer. The same is true here. A cast vote cannot be withdrawn, changed, or
 identified for removal, by you or by anyone else, because of how the next section works.
 
-**Secrecy, privacy, and anonymity are not the same thing.** These three get run together often, including in
-real elections, so it's worth being precise about which ones apply here.
-- *Anonymity* would mean nobody knows who took part. This system doesn't offer that, and doesn't claim to.
-  You see the roll: every identifier that requested a ballot, and whether it voted. That's what makes
-  double-voting detectable at all, and it's exactly how a paper register works.
-- *Secrecy of the ballot* means nobody, including you, can find out what a specific person chose. This
-  system does provide that — not as a policy, but structurally. Casting a vote only adds one to a running
-  total for the chosen answer. Nothing anywhere records which option a given identifier picked. There's no
-  field to look up and no query that could reveal it, because the information was never written down in the
-  first place.
-- *Privacy* is broader: minimal collection, nothing tracked, nothing kept beyond what the vote needs,
-  everything gone when you delete it. This system has that too — no cookies, no IP logging, no device
-  fingerprinting. But this is privacy from outside observers and from unnecessary technical exhaust, not
-  privacy from you. You are always able to see who took part.
+**Secrecy, privacy, and anonymity are not the same thing.** These three get run together often, including
+in real elections, so it's worth building up one position rather than listing three separate definitions.
 
-So, plainly: **this system is private. It does not provide anonymity. It does not provide authenticated
-privacy** — nobody's claimed identifier is ever verified, so "privacy" here can't mean privacy for a
-confirmed individual, only for whoever used that identifier.
+Start from what secrecy of the ballot actually has to mean: not that people agree not to look, but that a
+choice is *unknowable* to anyone — including whoever's running the vote. A policy of "we won't look" depends
+on trust, and trust is exactly what a secret ballot exists to make unnecessary. So secrecy has to be
+structural or it isn't really secrecy. This system meets that bar: casting a vote is a single increment to a
+running total for the chosen answer, and nothing else is ever written down. There's no field holding a
+choice against an identifier that anyone has to promise not to read, because it was never created.
+
+That's a deliberately narrower promise than anonymity. Anonymity would mean nobody knows who took part at
+all, and this system doesn't offer that: you see the roll, every identifier that requested a ballot and
+whether it voted. That isn't a compromise on secrecy — knowing who's entitled to vote and who actually did
+is a normal, often required part of running a legitimate election at all, not a limitation particular to
+this tool. It's also exactly what makes double-voting detectable, and exactly how a paper register at a
+polling station works. You can always see who took part; that visibility is part of what makes the result
+trustworthy, the same as a clerk's register. What you can never see, here or with a real secret ballot, is
+how they voted.
+
+Privacy is a third, separate axis again: how much is collected and kept about the process itself, regardless
+of secrecy or anonymity. This system is minimal there too — no cookies, no IP logging, no device
+fingerprinting, nothing outlasting the vote once you delete it. That's privacy from outside observers and
+from unnecessary technical exhaust; it was never meant to mean privacy from you.
+
+So, in one line: **this system is private. It does not provide anonymity. It does not provide authenticated
+privacy** — nobody's claimed identifier is ever verified, so whatever privacy exists belongs to whoever used
+that identifier, not to a confirmed individual.
+
+## Sharing the voter link
+The voter link — the one with the four-letter code, shown on the manage page — is the one thing you're
+meant to hand out. It's public in a specific sense: nobody needs a password to use it, so whoever has it can
+request a ballot. That's the point — it's meant to be shared — which is exactly why it should only go to
+people who are actually entitled to vote, the same way you wouldn't pin a paper ballot to a public
+noticeboard. Paste it into the meeting chat (Zoom, Teams, whatever you're using), send it by email, or put
+it up on screen during the meeting so people can type or scan it in themselves. That last one is worth doing
+deliberately if some voters are in the room and some aren't — it's the hybrid case this is built for: paper
+for the room, the same link for everyone else.
 
 **What you're responsible for.** The password is yours to keep; there is no reset. The manage address (or
 the vote's own code, once you've set a password) is what lets anyone run or delete the vote — sharing it is
 sharing control, not just visibility. While voting is open, the roll and the flags are worth watching, the
 way a clerk would watch a register. Deleting a vote is immediate and irreversible, for the question, every
 ballot, and every vote.
+
+The result is public too, in a narrow but real sense: once a vote closes, anyone with its four-character
+code can see the tally, the same as anyone with the voter link could throughout. That code is short by
+design, so nothing stops it being reachable indefinitely after the fact. If you'd rather it not sit there
+once you've shared the outcome, consider deleting the vote as soon as it's been announced. Deleting also
+removes the roll and its flags, so if you want your own record of how the vote actually ran, screenshot the
+manage page — roll, flags and all — before you do.
 
 ## Voter fraud: what this does and doesn't stop
 No voting system, paper or digital, stops a determined impersonator who's willing to be a specific other

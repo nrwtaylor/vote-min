@@ -1,6 +1,8 @@
 # vote-min
 
 ## Why you might want to check out vote-min
+One question, one ballot each. No accounts, no cookies, no device data.
+
 Voting used to be simple. For hundreds of years, and longer, in strata meetings, co-ops, committees,
 societies—anywhere a group needed to make a decision—it worked like this: you gathered, you asked the
 question, people voted in secret or raised their hand, you counted, you moved on. Trust and transparency, no
@@ -23,7 +25,7 @@ Let me know how it works in practice, and whether it has been helpful and/or use
 it live and use it at `https://stackr.ca/vote`.
 
 ## Installation
-One question, one ballot each. No accounts, no cookies, no device data. Public API: see API.md.
+Public API: see API.md.
 
     cd backend  && npm install && cp .env.example .env   # then edit .env, see below — must exist, even if empty
     npm start                                            # reads backend/.env automatically (Node 20.6+)
@@ -74,7 +76,7 @@ otherwise. There's nothing to unlink later, because it was never linked in the f
 identifier after voting, it's refused — and the organiser sees that someone tried, which is one of the ways
 attempts to vote twice get noticed.
 
-**If a ballot says it's no longer valid.** Only the most recently requested ballot for a given identifier
+**If a ballot says it's no longer valid.** Only the most recently issued ballot for a given identifier
 ever works. If the same identifier asks for another one — from this tab, another tab, another device, or a
 genuinely different person typing the same name — whichever ballot was issued before that stops working,
 live, even if you're already looking at it. You'll see a plain explanation of why rather than a confusing
@@ -165,18 +167,19 @@ it up on screen during the meeting so people can type or scan it in themselves. 
 deliberately if some voters are in the room and some aren't — it's the hybrid case this is built for: paper
 for the room, the same link for everyone else.
 
-**What you're responsible for.** The password is yours to keep; there is no reset. The manage address (or
-the vote's own code, once you've set a password) is what lets anyone run or delete the vote — sharing it is
-sharing control, not just visibility. While voting is open, the roll and the flags are worth watching, the
-way a clerk would watch a register. Deleting a vote is immediate and irreversible, for the question, every
-ballot, and every vote.
-
 The result is public too, in a narrow but real sense: once a vote closes, anyone with its four-character
 code can see the tally, the same as anyone with the voter link could throughout. That code is short by
 design, so nothing stops it being reachable indefinitely after the fact. If you'd rather it not sit there
 once you've shared the outcome, consider deleting the vote as soon as it's been announced. Deleting also
 removes the roll and its flags, so if you want your own record of how the vote actually ran, screenshot the
 manage page — roll, flags and all — before you do.
+
+## Sharing the vote manager link
+**What you're responsible for.** The password is yours to keep private; there is no reset. The manage address (or
+the vote's own code, once you've set a password) is what lets anyone run or delete the vote — sharing it is
+sharing control, not just visibility. While voting is open, the roll and the flags are worth watching, the
+way a clerk would watch a register. Deleting a vote is immediate and irreversible, for the question, every
+ballot, and every vote.
 
 ## Voter fraud: what this does and doesn't stop
 No voting system, paper or digital, stops a determined impersonator who's willing to be a specific other
